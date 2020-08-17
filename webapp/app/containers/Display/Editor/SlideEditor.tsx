@@ -18,11 +18,7 @@
  * >>
  */
 
-import React, {
-  useEffect,
-  useCallback,
-  useMemo,
-} from 'react'
+import React, { useEffect, useCallback, useMemo } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
 import html2canvas from 'html2canvas'
 import pick from 'lodash/pick'
@@ -52,6 +48,7 @@ import SlideLayerList from './SlideLayerList'
 import SlideBaselines from './SlideBaselines'
 import { LayerOperations } from '../components/constants'
 import { DeltaPosition } from '../components/types'
+import { DragTriggerTypes } from '../constants'
 
 const SlideEditor: React.FC = (props) => {
   const dispatch = useDispatch()
@@ -99,13 +96,18 @@ const SlideEditor: React.FC = (props) => {
     [displayId, slideId]
   )
   const changeLayersPosition = useCallback(
-    (deltaPosition: DeltaPosition, scale: number) => {
+    (
+      deltaPosition: DeltaPosition,
+      scale: number,
+      eventTrigger: DragTriggerTypes
+    ) => {
       dispatch(
         DisplayActions.dragLayer(
           pick(slideParams, 'width', 'height'),
           scale,
           deltaPosition,
-          true
+          eventTrigger,
+          false
         )
       )
     },
@@ -147,9 +149,9 @@ const SlideEditor: React.FC = (props) => {
     <SplitPane
       className="display-layout-content"
       type="horizontal"
-      initialSize={160}
+      initialSize={240}
       minSize={160}
-      maxSize={250}
+      maxSize={480}
       invert
     >
       <DisplayContainer grid={grid}>

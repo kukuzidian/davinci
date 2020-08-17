@@ -24,6 +24,8 @@ import static edp.davinci.core.common.Constants.DAVINCI_TOPIC_CHANNEL;
 import java.util.Date;
 import java.util.List;
 
+import edp.core.utils.*;
+import edp.davinci.core.enums.LockType;
 import org.quartz.SchedulerException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -40,10 +42,6 @@ import edp.core.consts.Consts;
 import edp.core.exception.NotFoundException;
 import edp.core.exception.ServerException;
 import edp.core.exception.UnAuthorizedExecption;
-import edp.core.utils.BaseLock;
-import edp.core.utils.DateUtils;
-import edp.core.utils.QuartzHandler;
-import edp.core.utils.RedisUtils;
 import edp.davinci.core.enums.CheckEntityEnum;
 import edp.davinci.core.enums.CronJobStatusEnum;
 import edp.davinci.core.enums.LogNameEnum;
@@ -77,6 +75,9 @@ public class CronJobServiceImpl extends BaseEntityService implements CronJobServ
 	
 	@Autowired
 	private EmailScheduleServiceImpl emailScheduleService;
+
+	@Autowired
+	private WeChatWorkScheduleServiceImpl weChatWorkScheduleService;
 
 	private static final CheckEntityEnum entity = CheckEntityEnum.CRONJOB;
 
@@ -198,7 +199,7 @@ public class CronJobServiceImpl extends BaseEntityService implements CronJobServ
 		checkWritePermission(entity, projectId, user, "update");
 
 		String name = cronJobUpdate.getName();
-		checkIsExist(name, null, projectId);
+		checkIsExist(name, id, projectId);
 
 		if (CronJobStatusEnum.START.getStatus().equals(cronJob.getJobStatus())) {
 			throw new ServerException("Please stop the job before updating");
@@ -322,15 +323,15 @@ public class CronJobServiceImpl extends BaseEntityService implements CronJobServ
 		jobList.forEach((cronJob) -> {
 			String key = entity.getSource().toUpperCase() + Consts.UNDERLINE + cronJob.getId() + Consts.UNDERLINE
 					+ cronJob.getProjectId();
-			if (redisUtils.setIfAbsent(key, 1, 300)) {
+			if (LockFactory.getLock(key, 300, LockType.REDIS).getLock()) {
 				try {
 					quartzHandler.addJob(cronJob);
 				} catch (SchedulerException e) {
-					log.error(e.getMessage(), e);
+					log.warn("CronJob: {} (id: {}), start error: {}", cronJob.getName(), cronJob.getId(),  e.getMessage());
 					cronJob.setJobStatus(CronJobStatusEnum.FAILED.getStatus());
 					cronJobMapper.update(cronJob);
 				} catch (ServerException e) {
-					log.error(e.getMessage(), e);
+					log.warn("CronJob: {} (id: {}), start error: {}", cronJob.getName(), cronJob.getId(), e.getMessage());
 				}
 			}
 		});
@@ -351,12 +352,23 @@ public class CronJobServiceImpl extends BaseEntityService implements CronJobServ
 				String jobType = cronJob.getJobType().trim();
 
 				if (!StringUtils.isEmpty(jobType)) {
-					try {
-						emailScheduleService.execute(cronJob.getId());
-					} catch (Exception e) {
-						log.error(e.getMessage(), e);
-						scheduleLogger.error(e.getMessage());
+					if (jobType.equals("email")) {
+						try {
+							emailScheduleService.execute(cronJob.getId());
+						} catch (Exception e) {
+							log.error(e.getMessage(), e);
+							scheduleLogger.error(e.getMessage());
+						}
+					} else if(jobType.equals("weChatWork")) {
+						try {
+							// 企业微信推送
+							weChatWorkScheduleService.execute(cronJob.getId());
+						} catch (Exception e) {
+							log.error(e.getMessage(), e);
+							scheduleLogger.error(e.getMessage());
+						}
 					}
+
 				} else {
 					log.warn("Unknown job type [{}], job ID: (:{})", jobType, cronJob.getId());
 					scheduleLogger.warn("Unknown job type [{}], job ID: (:{})", jobType, cronJob.getId());

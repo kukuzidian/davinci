@@ -36,24 +36,31 @@ import {
   LOAD_DOWNLOAD_LIST_SUCCESS,
   LOAD_DOWNLOAD_LIST_FAILURE,
   DOWNLOAD_FILE_SUCCESS,
-  UPDATE_PROFILE_SUCCESS
+  UPDATE_PROFILE_SUCCESS,
+  GET_EXTERNAL_AUTH_PROVIDERS_SUCESS,
+  DownloadStatus,
+  GET_VERSION_SUCCESS
 } from './constants'
-import { DownloadStatus } from './types'
 
 
 const initialState = {
+  externalAuthProviders: null,
   logged: null,
   loginUser: null,
   loginLoading: false,
   navigator: true,
   downloadListLoading: false,
   downloadList: null,
-  downloadListInfo: null
+  downloadListInfo: null,
+  version: null
 }
 
 const appReducer = (state = initialState, action) =>
   produce(state, (draft) => {
     switch (action.type) {
+      case GET_EXTERNAL_AUTH_PROVIDERS_SUCESS:
+        draft.externalAuthProviders = action.payload.externalAuthProviders
+        break
       case LOGIN:
         draft.loginLoading = true
         break
@@ -68,6 +75,9 @@ const appReducer = (state = initialState, action) =>
       case ACTIVE_SUCCESS:
         draft.logged = true
         draft.loginUser = action.payload.user
+        break
+      case GET_VERSION_SUCCESS:
+        draft.version = action.payload.version
         break
       case LOGOUT:
         draft.logged = false

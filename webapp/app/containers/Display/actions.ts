@@ -18,7 +18,7 @@
  * >>
  */
 
-import { ActionTypes } from './constants'
+import { ActionTypes, DragTriggerTypes } from './constants'
 import { returnType } from 'utils/redux'
 
 import {
@@ -122,11 +122,11 @@ export const DisplayActions = {
       }
     }
   },
-
   dragLayer(
     slideSize: Pick<ISlideParams, 'width' | 'height'>,
     scale: number,
     deltaPosition: DeltaPosition,
+    eventTrigger: DragTriggerTypes,
     finish: boolean,
     layerId?: number
   ) {
@@ -137,6 +137,7 @@ export const DisplayActions = {
         scale,
         layerId,
         deltaPosition,
+        eventTrigger,
         finish
       }
     }
@@ -145,7 +146,7 @@ export const DisplayActions = {
     layerIds: number[],
     slideSize: Pick<ISlideParams, 'width' | 'height'>,
     deltaPosition: DeltaPosition,
-    finish: boolean,
+    finish: boolean
   ) {
     return {
       type: ActionTypes.DRAG_LAYER_ADJUSTED,
@@ -368,30 +369,30 @@ export const DisplayActions = {
     }
   },
 
-  loadDisplayShareLink(id: number, authName: string) {
+  loadDisplayShareLink(id: number, authUser: string) {
     return {
       type: ActionTypes.LOAD_DISPLAY_SHARE_LINK,
       payload: {
         id,
-        authName
+        authUser
       }
     }
   },
 
-  displayShareLinkLoaded(shareInfo: string) {
+  displayShareLinkLoaded(shareToken: string) {
     return {
       type: ActionTypes.LOAD_DISPLAY_SHARE_LINK_SUCCESS,
       payload: {
-        shareInfo
+        shareToken
       }
     }
   },
 
-  displaySecretLinkLoaded(secretInfo: string) {
+  displayAuthorizedShareLinkLoaded(authorizedShareToken: string) {
     return {
-      type: ActionTypes.LOAD_DISPLAY_SECRET_LINK_SUCCESS,
+      type: ActionTypes.LOAD_DISPLAY_AUTHORIZED_SHARE_LINK_SUCCESS,
       payload: {
-        secretInfo
+        authorizedShareToken
       }
     }
   },
@@ -400,6 +401,22 @@ export const DisplayActions = {
     return {
       type: ActionTypes.LOAD_DISPLAY_SHARE_LINK_FAILURE,
       payload: {}
+    }
+  },
+
+  openSharePanel (id, title) {
+    return {
+      type: ActionTypes.OPEN_SHARE_PANEL,
+      payload: {
+        id,
+        title
+      }
+    }
+  },
+
+  closeSharePanel () {
+    return {
+      type: ActionTypes.CLOSE_SHARE_PANEL
     }
   },
 

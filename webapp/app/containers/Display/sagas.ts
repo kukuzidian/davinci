@@ -24,7 +24,8 @@ import {
   all,
   select,
   takeLatest,
-  takeEvery
+  takeEvery,
+  take
 } from 'redux-saga/effects'
 
 import produce from 'immer'
@@ -32,7 +33,7 @@ import request from 'utils/request'
 import api from 'utils/api'
 import { errorHandler } from 'utils/util'
 
-import { ActionTypes } from './constants'
+import { ActionTypes, DragTriggerTypes } from './constants'
 import DisplayActions, { DisplayActionType } from './actions'
 import {
   ILayerRaw,
@@ -53,7 +54,8 @@ import {
   makeSelectCurrentSelectedLayerIds,
   makeSelectCurrentOperatingLayerList,
   makeSelectCurrentOtherLayerList,
-  makeSelectClipboardLayers
+  makeSelectClipboardLayers,
+  makeSelectCurrentOperateItemParams
 } from './selectors'
 import { makeSelectFormedViews } from 'containers/View/selectors'
 import { bringToFront, sendToBottom, bringToUpper, sendToNext } from './util'
@@ -247,7 +249,7 @@ export function* dragLayer(action: DisplayActionType) {
   if (action.type !== ActionTypes.DRAG_LAYER) {
     return
   }
-  const { deltaPosition, layerId, finish, slideSize, scale } = action.payload
+  const { deltaPosition, layerId, finish, slideSize, scale, eventTrigger } = action.payload
 
   const movingLayers: ILayerFormed[] = yield select((state) =>
     makeSelectCurrentOperatingLayerList()(state, layerId)
@@ -255,6 +257,24 @@ export function* dragLayer(action: DisplayActionType) {
   if (!movingLayers.length) {
     return
   }
+
+  const operateItemParams = yield select(makeSelectCurrentOperateItemParams())
+
+  const operateParamsMap = new Map()
+
+  operateItemParams.forEach((item) => {
+    operateParamsMap.set(item.id, item)
+  })
+
+  const updateMovingLayers = movingLayers.map((layer) => {
+    const id = layer.id
+    if (operateParamsMap.has(id)) {
+      layer.params = operateParamsMap.get(id).params
+      return {...{}, ...layer, ...{ params: operateParamsMap.get(id).params }}
+    }
+    return layer
+  })
+
   const otherLayers = yield select((state) =>
     makeSelectCurrentOtherLayerList()(state, layerId)
   )
@@ -265,7 +285,7 @@ export function* dragLayer(action: DisplayActionType) {
   const { id: slideId } = yield select(makeSelectCurrentSlide())
 
   const baselines = computeEditorBaselines(
-    movingLayers,
+    updateMovingLayers,
     otherLayers,
     slideSize,
     (displayParams || DefaultDisplayParams).grid,
@@ -275,35 +295,38 @@ export function* dragLayer(action: DisplayActionType) {
   )
 
   const { deltaX, deltaY } = deltaPosition
+  const needSnapToGrid = eventTrigger === DragTriggerTypes.MouseMove
   const deltaPositionAdjusted: DeltaPosition = baselines.reduce<DeltaPosition>(
     (acc, bl) => ({
-      deltaX: acc.deltaX + bl.adjust[0],
-      deltaY: acc.deltaY + bl.adjust[1]
+      deltaX: acc.deltaX + (needSnapToGrid && bl.adjust[0]),
+      deltaY: acc.deltaY + (needSnapToGrid && bl.adjust[1])
     }),
     { deltaX, deltaY }
   )
-
-  if (finish) {
-    const updateLayers = produce(movingLayers, (draft) => {
-      draft.forEach((layer) => {
-        layer.params.positionX += deltaX
-        layer.params.positionY += deltaY
-      })
-    })
-    yield put(DisplayActions.editSlideLayers(displayId, slideId, updateLayers))
-    yield put(DisplayActions.clearEditorBaselines())
-  } else {
-    yield put(DisplayActions.showEditorBaselines(baselines))
-  }
-
   yield put(
     DisplayActions.dragLayerAdjusted(
-      movingLayers.map(({ id }) => id),
+      updateMovingLayers.map(({ id }) => id),
       slideSize,
       deltaPositionAdjusted,
       finish
     )
   )
+  yield put(DisplayActions.showEditorBaselines(baselines))
+
+  if (finish) {
+    const updateLayers = produce(updateMovingLayers, (draft) => {
+      draft.forEach((layer) => {
+        const item = operateParamsMap.get(layer.id)
+        if (item) {
+          layer.params.positionX += deltaX
+          layer.params.positionY += deltaY
+        }
+      })
+    })
+    yield put(DisplayActions.editSlideLayers(displayId, slideId, updateLayers))
+    yield take(ActionTypes.EDIT_SLIDE_LAYERS_SUCCESS)
+    yield put(DisplayActions.clearEditorBaselines())
+  }
 }
 
 export function* resizeLayer(action: DisplayActionType) {
@@ -459,9 +482,9 @@ export function* getDisplayShareLink(action: DisplayActionType) {
     return
   }
 
-  const { id, authName } = action.payload
+  const { id, authUser } = action.payload
   const {
-    displaySecretLinkLoaded,
+    displayAuthorizedShareLinkLoaded,
     displayShareLinkLoaded,
     loadDisplayShareLinkFail
   } = DisplayActions
@@ -469,13 +492,13 @@ export function* getDisplayShareLink(action: DisplayActionType) {
     const asyncData = yield call(request, {
       method: 'get',
       url: `${api.display}/${id}/share`,
-      params: { username: authName }
+      params: { username: authUser || '' }
     })
-    const shareInfo = asyncData.payload
-    if (authName) {
-      yield put(displaySecretLinkLoaded(shareInfo))
+    const shareToken = asyncData.payload
+    if (authUser) {
+      yield put(displayAuthorizedShareLinkLoaded(shareToken))
     } else {
-      yield put(displayShareLinkLoaded(shareInfo))
+      yield put(displayShareLinkLoaded(shareToken))
     }
   } catch (err) {
     yield put(loadDisplayShareLinkFail())

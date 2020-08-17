@@ -21,18 +21,18 @@
 import { call, put, all, takeLatest } from 'redux-saga/effects'
 
 import { LOGIN } from './constants'
-import { logged } from './actions'
+import { logged, logonFail } from './actions'
 
 import request from 'utils/request'
 import { errorHandler } from 'utils/util'
 import api from 'utils/api'
 
 export function* login (action) {
-  const { username, password, shareInfo, resolve } = action.payload
+  const { username, password, shareToken, resolve } = action.payload
   try {
     const userInfo = yield call(request, {
       method: 'post',
-      url: `${api.share}/login/${shareInfo}`,
+      url: `${api.share}/login/${shareToken}`,
       data: {
         username,
         password
@@ -41,6 +41,7 @@ export function* login (action) {
     yield put(logged(userInfo.payload))
     resolve()
   } catch (err) {
+    yield put(logonFail(err))
     errorHandler(err)
   }
 }

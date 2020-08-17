@@ -46,6 +46,7 @@ enum Types {
 
   RESIZE_LAYER = 'davinci/Display/RESIZE_LAYER',
   RESIZE_LAYER_ADJUSTED = 'davinci/Display/RESIZE_LAYER_ADJUSTED',
+  
   DRAG_LAYER = 'davinci/Display/DRAG_LAYER',
   DRAG_LAYER_ADJUSTED = 'davinci/Display/DRAG_LAYER_ADJUSTED',
 
@@ -71,8 +72,11 @@ enum Types {
 
   LOAD_DISPLAY_SHARE_LINK = 'davinci/Display/LOAD_DISPLAY_SHARE_LINK',
   LOAD_DISPLAY_SHARE_LINK_SUCCESS = 'davinci/Display/LOAD_DISPLAY_SHARE_LINK_SUCCESS',
-  LOAD_DISPLAY_SECRET_LINK_SUCCESS = 'davinci/Display/LOAD_DISPLAY_SECRET_LINK_SUCCESS',
+  LOAD_DISPLAY_AUTHORIZED_SHARE_LINK_SUCCESS = 'davinci/Display/LOAD_DISPLAY_AUTHORIZED_SHARE_LINK_SUCCESS',
   LOAD_DISPLAY_SHARE_LINK_FAILURE = 'davinci/Display/LOAD_DISPLAY_SHARE_LINK_FAILURE',
+
+  OPEN_SHARE_PANEL = 'davinci/Display/OPEN_SHARE_PANEL',
+  CLOSE_SHARE_PANEL = 'davinci/Display/CLOSE_SHARE_PANEL',
 
   RESET_DISPLAY_STATE = 'davinci/Display/RESET_DISPLAY_STATE',
 
@@ -84,3 +88,8 @@ enum Types {
 export const ActionTypes = createTypes(Types)
 
 export { GraphTypes, DefaultDisplayParams } from './components/constants'
+
+export enum DragTriggerTypes {
+  MouseMove = 'mousemove',
+  KeyDown = 'keydown'
+}

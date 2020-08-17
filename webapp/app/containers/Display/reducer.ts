@@ -23,7 +23,6 @@ import produce from 'immer'
 import { LOCATION_CHANGE, LocationChangeAction } from 'connected-react-router'
 import { matchDisplaySlidePath } from 'utils/router'
 
-
 import { ActionTypes } from './constants'
 import { ActionTypes as VizActionTypes } from 'containers/Viz/constants'
 import { ActionTypes as ViewActionTypes } from '../View/constants'
@@ -35,11 +34,19 @@ import { DisplayActionType } from './actions'
 import { VizActionType } from '../Viz/actions'
 import { ViewActionType } from '../View/actions'
 
-import { IDisplayState } from './types'
+import { IDisplayState, IDisplaySharePanelState } from './types'
+
+const defaultSharePanelState: IDisplaySharePanelState = {
+  id: 0,
+  type: 'display',
+  title: '',
+  visible: false
+}
 
 export const initialState: IDisplayState = {
-  currentDisplayShareInfo: '',
-  currentDisplaySecretInfo: '',
+  currentDisplayShareToken: '',
+  currentDisplayAuthorizedShareToken: '',
+  sharePanel: defaultSharePanelState,
   currentDisplaySelectOptions: {},
 
   currentSlideId: 0,
@@ -57,9 +64,10 @@ export const initialState: IDisplayState = {
   lastLayers: [],
 
   editorBaselines: [],
+  operateItemParams: [],
 
   loading: {
-    shareInfo: false,
+    shareToken: false,
     slideLayers: false
   }
 }
@@ -117,7 +125,7 @@ const displayReducer = (
                     datasource: { resultList: [] },
                     loading: false,
                     queryConditions: {
-                      tempFilters: [],
+                      tempFilters: [], // @TODO combine widget static filters with local filters
                       linkageFilters: [],
                       globalFilters: [],
                       variables: [],
@@ -285,41 +293,45 @@ const displayReducer = (
           ].resizing = !action.payload.finish
         })
         break
-
-      case ActionTypes.DRAG_LAYER_ADJUSTED:
+      case ActionTypes.DRAG_LAYER_ADJUSTED: {
         const {
-          width: slideWidth,
-          height: slideHeight
-        } = action.payload.slideSize
-        const movingLayerIds = action.payload.layerIds
-        movingLayerIds.forEach((layerId) => {
-          if (!action.payload.finish) {
-            const layer = draft.slideLayers[draft.currentSlideId][layerId]
-            layer.params.positionX += action.payload.deltaPosition.deltaX
-            layer.params.positionY += action.payload.deltaPosition.deltaY
-            if (layer.params.positionX < 0) {
-              layer.params.positionX = 0
-            } else if (
-              layer.params.positionX + layer.params.width >
-              slideWidth
-            ) {
-              layer.params.positionX = slideWidth - layer.params.width
+          slideSize: { width: slideWidth, height: slideHeight },
+          layerIds,
+          deltaPosition
+        } = action.payload
+        const isEmpty = draft.operateItemParams.length === 0
+        layerIds.forEach((layerId) => {
+          if (isEmpty) {
+            draft.operateItemParams.push({
+              ...draft.slideLayers[draft.currentSlideId][layerId]
+            })
+          }
+          const item = draft.operateItemParams.find(
+            (item) => item.id === layerId
+          )
+          if (item) {
+            item.params.positionX += deltaPosition.deltaX
+            item.params.positionY += deltaPosition.deltaY
+            if (item.params.positionX < 0) {
+              item.params.positionX = 0
+            } else if (item.params.positionX + item.params.width > slideWidth) {
+              item.params.positionX = slideWidth - item.params.width
             }
-            if (layer.params.positionY < 0) {
-              layer.params.positionY = 0
+            if (item.params.positionY < 0) {
+              item.params.positionY = 0
             } else if (
-              layer.params.positionY + layer.params.height >
+              item.params.positionY + item.params.height >
               slideHeight
             ) {
-              layer.params.positionY = slideHeight - layer.params.height
+              item.params.positionY = slideHeight - item.params.height
             }
+            draft.slideLayersOperationInfo[draft.currentSlideId][
+              layerId
+            ].dragging = true
           }
-
-          draft.slideLayersOperationInfo[draft.currentSlideId][
-            layerId
-          ].dragging = !action.payload.finish
         })
         break
+      }
 
       case ActionTypes.SELECT_LAYER:
         Object.entries(layersOperationInfo).forEach(
@@ -353,6 +365,12 @@ const displayReducer = (
 
       case ActionTypes.CLEAR_EDITOR_BASELINES:
         draft.editorBaselines = []
+        draft.operateItemParams = []
+        Object.values(
+          draft.slideLayersOperationInfo[draft.currentSlideId]
+        ).forEach((item) => {
+          item.dragging = false
+        })
         break
 
       case ActionTypes.SHOW_EDITOR_BASELINES:
@@ -364,28 +382,47 @@ const displayReducer = (
         break
 
       case ActionTypes.LOAD_DISPLAY_SHARE_LINK:
-        draft.loading.shareInfo = true
+        draft.loading.shareToken = true
+        if (action.payload.authUser) {
+          draft.currentDisplayAuthorizedShareToken = ''
+        }
         break
 
       case ActionTypes.LOAD_DISPLAY_SHARE_LINK_SUCCESS:
-        draft.currentDisplayShareInfo = action.payload.shareInfo
-        draft.loading.shareInfo = false
+        draft.currentDisplayShareToken = action.payload.shareToken
+        draft.loading.shareToken = false
         break
 
-      case ActionTypes.LOAD_DISPLAY_SECRET_LINK_SUCCESS:
-        draft.currentDisplaySecretInfo = action.payload.secretInfo
-        draft.loading.shareInfo = false
+      case ActionTypes.LOAD_DISPLAY_AUTHORIZED_SHARE_LINK_SUCCESS:
+        draft.currentDisplayAuthorizedShareToken =
+          action.payload.authorizedShareToken
+        draft.loading.shareToken = false
         break
 
       case ActionTypes.LOAD_DISPLAY_SHARE_LINK_FAILURE:
-        draft.loading.shareInfo = false
+        draft.loading.shareToken = false
+        break
+
+      case ActionTypes.OPEN_SHARE_PANEL:
+        draft.sharePanel = {
+          id: action.payload.id,
+          type: 'display',
+          title: action.payload.title,
+          visible: true
+        }
+        break
+
+      case ActionTypes.CLOSE_SHARE_PANEL:
+        draft.sharePanel = defaultSharePanelState
         break
 
       case ActionTypes.RESET_DISPLAY_STATE:
         return initialState
 
       case LOCATION_CHANGE:
-        const matchSlide = matchDisplaySlidePath(action.payload.location.pathname)
+        const matchSlide = matchDisplaySlidePath(
+          action.payload.location.pathname
+        )
         if (matchSlide) {
           draft.currentSlideId = +matchSlide.params.slideId || null
         } else {

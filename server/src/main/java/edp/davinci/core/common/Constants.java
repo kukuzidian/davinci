@@ -19,8 +19,11 @@
 
 package edp.davinci.core.common;
 
+import com.alibaba.druid.util.StringUtils;
 import edp.core.consts.Consts;
+import edp.core.exception.ServerException;
 
+import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 /**
@@ -46,12 +49,24 @@ public class Constants extends Consts {
     public static final String USER_ACTIVATE_EMAIL_TEMPLATE = "mail/userActivateEmailTemplate";
 
 
+    /**
+     * 用户重置密码邮件模板
+     */
+    public static final String USER_REST_PASSWORD_EMAIL_TEMPLATE = "mail/userRestPasswordEmailTemplate";
+
+
     public static final String EMAIL_DEFAULT_TEMPLATE = "mail/emaiDefaultTemplate";
 
     /**
      * 用户激活 / 重发激活邮件主题
      */
     public static final String USER_ACTIVATE_EMAIL_SUBJECT = "[Davinci] 用户激活";
+
+
+    /**
+     * 用户重置密码邮件主题
+     */
+    public static final String USER_REST_PASSWORD_EMAIL_SUBJECT = "[Davinci] 重置密码";
 
     /**
      * 用户默认Organization描述
@@ -123,7 +138,7 @@ public class Constants extends Consts {
     /**
      * select 表达式
      */
-    public static final String SELECT_EXEPRESSION = "SELECT * FROM TABLE WHERE %s";
+    public static final String SELECT_EXPRESSION = "SELECT * FROM TABLE WHERE %s";
 
     /**
      * 点赞project
@@ -139,7 +154,11 @@ public class Constants extends Consts {
 
     public static final String REG_SQL_PLACEHOLDER = "%s.+%s";
 
-    public static final String REG_AUTHVAR = "\\([a-zA-Z0-9_.-[\\u4e00-\\u9fa5]*]+\\s*[\\w<>!=]*\\s*[a-zA-Z0-9_.-]*((\\(%s[a-zA-Z0-9_]+%s\\))|(%s[a-zA-Z0-9_]+%s))+\\s*\\)";
+    public static final String REG_AUTHVAR = "\\([a-zA-Z0-9_.\\-[\\u4e00-\\u9fa5]*]+\\s*[\\s\\w<>!=]*\\s*[a-zA-Z0-9_.\\-]*((\\(%s[a-zA-Z0-9_]+%s\\))|(%s[a-zA-Z0-9_]+%s))+\\s*\\)";
+
+    public static final String REG_SYSVAR = "[a-zA-Z0-9_.\\-\\u4e00-\\u9fa5]+\\s*[\\!=]{1,2}\\s*['\"\\[]?%s['\"\\]]?";
+
+    public static final String REG_IGNORE_CASE = "(?i)";
 
     public static final String REG_CHINESE = "[\\u4e00-\\u9fa5]+";
 
@@ -154,6 +173,19 @@ public class Constants extends Consts {
 
     public static char getSqlTempDelimiter(String sqlTempDelimiter) {
         return sqlTempDelimiter.charAt(sqlTempDelimiter.length() - 1);
+    }
+
+    public static boolean checkSheetName(String name, String value) {
+        if (!StringUtils.isEmpty(value)) {
+            if (value.length() > INVALID_SHEET_NAEM_LENGTH) {
+                throw new ServerException(name + " length cannot exceed 18 digits");
+            }
+            Matcher matcher = INVALID_SHEET_NAME.matcher(value);
+            if (matcher.find()) {
+                throw new ServerException(name + " cannot contain the following characters: !,:,\\,\\/,?,*,[,],");
+            }
+        }
+        return true;
     }
 
     public static String getReg(String express, char delimiter, boolean isAuthPress) {

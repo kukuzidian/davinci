@@ -42,31 +42,27 @@ const LayerList: React.FC<ILayerListProps> = (props) => {
   const { layers, selection, onCommand, onSelectionChange } = props
 
   return (
-    <div className="display-layer-list">
-      <Card
-        size="small"
-        title={
-          <CommandList
-            className="display-layer-command"
-            onCommand={onCommand}
-          />
-        }
-      >
-        <LayerRadioGroup>
-          {layers.map((layer) => (
-            <LayerRadio
-              key={layer.id}
-              id={layer.id}
-              checked={selection[layer.id].selected}
-              onChange={onSelectionChange}
-            >
-              {layer.name}
-            </LayerRadio>
-          ))}
-        </LayerRadioGroup>
-      </Card>
-    </div>
+    <Card
+      className="display-layer-list"
+      size="small"
+      title={
+        <CommandList className="display-layer-command" onCommand={onCommand} />
+      }
+    >
+      <LayerRadioGroup>
+        {layers.map((layer) => (
+          <LayerRadio
+            key={layer.id}
+            id={layer.id}
+            checked={selection[layer.id].selected}
+            onChange={onSelectionChange}
+          >
+            {layer.name}
+          </LayerRadio>
+        ))}
+      </LayerRadioGroup>
+    </Card>
   )
 }
 
-export default LayerList
+export default React.memo(LayerList)

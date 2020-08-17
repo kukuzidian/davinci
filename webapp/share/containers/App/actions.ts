@@ -21,16 +21,17 @@
 import {
   LOGIN,
   LOGGED,
-  LOGOUT
+  LOGOUT,
+  LOGON_FAILURE
 } from './constants'
 
-export function login (username, password, shareInfo, resolve) {
+export function login (username, password, shareToken, resolve) {
   return {
     type: LOGIN,
     payload: {
       username,
       password,
-      shareInfo,
+      shareToken,
       resolve
     }
   }
@@ -47,6 +48,15 @@ export function logged (user) {
     type: LOGGED,
     payload: {
       user
+    }
+  }
+}
+
+export function logonFail (error) {
+  return {
+    type: LOGON_FAILURE,
+    payload: {
+      error
     }
   }
 }

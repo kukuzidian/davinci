@@ -163,6 +163,11 @@ const makeSelectCurrentOtherLayerList = () =>
     }
   )
 
+const makeSelectCurrentOperateItemParams = () => (state: { display: IDisplayState }) =>
+state.display
+  ? state.display.operateItemParams
+  : []
+
 const makeSelectCurrentDisplayWidgets = () =>
   createSelector(
     selectDisplay,
@@ -175,16 +180,22 @@ const makeSelectClipboardLayers = () =>
     (displayState) => displayState.clipboardLayers
   )
 
-const makeSelectCurrentDisplayShareInfo = () =>
+const makeSelectCurrentDisplayShareToken = () =>
   createSelector(
     selectDisplay,
-    (displayState) => displayState.currentDisplayShareInfo
+    (displayState) => displayState.currentDisplayShareToken
   )
 
-const makeSelectCurrentDisplaySecretInfo = () =>
+const makeSelectCurrentDisplayAuthorizedShareToken = () =>
   createSelector(
     selectDisplay,
-    (displayState) => displayState.currentDisplaySecretInfo
+    (displayState) => displayState.currentDisplayAuthorizedShareToken
+  )
+
+const makeSelectSharePanel = () =>
+  createSelector(
+    selectDisplay,
+    (displayState) => displayState.sharePanel
   )
 
 const makeSelectDisplayLoading = () =>
@@ -215,11 +226,13 @@ export {
   //
   makeSelectCurrentOperatingLayerList,
   makeSelectCurrentOtherLayerList,
+  makeSelectCurrentOperateItemParams,
   //
   makeSelectCurrentDisplayWidgets,
   makeSelectClipboardLayers,
-  makeSelectCurrentDisplayShareInfo,
-  makeSelectCurrentDisplaySecretInfo,
+  makeSelectCurrentDisplayShareToken,
+  makeSelectCurrentDisplayAuthorizedShareToken,
+  makeSelectSharePanel,
   makeSelectDisplayLoading,
   makeSelectEditorBaselines
 }

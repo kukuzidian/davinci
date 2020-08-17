@@ -21,9 +21,10 @@
 import { IWidgetFormed } from 'containers/Widget/types'
 import { IViewModel } from 'app/containers/View/types'
 import { RenderType } from 'app/containers/Widget/components/Widget'
-import { IQueryConditions } from 'app/containers/Dashboard/Grid'
+import { IQueryConditions } from 'app/containers/Dashboard/types'
 import { ILayerFormed } from '../types'
 import { ILayerInfo } from '../../types'
+import { DragTriggerTypes } from '../../constants'
 
 export type DeltaPosition = { deltaX: number, deltaY: number }
 export type DeltaSize = { deltaWidth: number, deltaHeight: number }
@@ -66,6 +67,7 @@ export type LayerListContextValue = {
   onDrag?: (
     layerId: number,
     deltaPosition: DeltaPosition,
+    eventTrigger: DragTriggerTypes,
     finish?: boolean
   ) => void
   onResize?: (layerId: number, deltaSize: DeltaSize, finish?: boolean) => void

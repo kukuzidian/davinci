@@ -27,6 +27,7 @@ import {
   takeEvery
 } from 'redux-saga/effects'
 import produce from 'immer'
+import { message } from 'antd'
 import { push, replace } from 'connected-react-router'
 import { Location } from 'history'
 import { matchDisplayPath, matchDisplaySlidePath } from 'utils/router'
@@ -47,6 +48,7 @@ import { errorHandler } from 'utils/util'
 import { getDashboardNodes } from './util'
 import { ISlideRaw, ISlideFormed, Slide } from './types'
 import { getDefaultSlideParams } from 'containers/Display/components/util'
+import { IDashboard } from '../Dashboard/types'
 
 export function* getPortals(action: VizActionType) {
   if (action.type !== ActionTypes.LOAD_PORTALS) {
@@ -240,12 +242,21 @@ export function* copyDisplay(action: VizActionType) {
     return
   }
 
-  const { id } = action.payload
+  const { display, resolve } = action.payload
+  const { id, name, description, publish, roleIds } = display
   try {
     const asyncData = yield call(request, `${api.display}/copy/${id}`, {
-      method: 'post'
+      method: 'post',
+      data: {
+        name,
+        description,
+        publish,
+        roleIds
+      }
     })
-    yield put(VizActions.displayCopied(id, asyncData.payload))
+    yield put(VizActions.displayCopied(asyncData.payload))
+    resolve()
+    message.success('Display 复制成功')
   } catch (err) {
     yield put(VizActions.copyDisplayFail())
     errorHandler(err)
@@ -270,6 +281,9 @@ export function* getDisplaySlides(action: VizActionType) {
     const location: Location = yield select(makeSelectLocation())
     const matchDisplay = matchDisplayPath(location.pathname)
     const matchDisplaySlide = matchDisplaySlidePath(location.pathname)
+    if (!matchDisplay && !matchDisplaySlide) {
+      return
+    }
 
     let previewSubPath: string = ''
     if (matchDisplay) {
@@ -345,11 +359,17 @@ export function* editDashboard(action: VizActionType) {
 
 export function* editCurrentDashboard(action) {
   const { dashboard, resolve } = action.payload
+  const { config, ...rest } = dashboard as IDashboard
   try {
     yield call(request, {
       method: 'put',
       url: `${api.portal}/${dashboard.dashboardPortalId}/dashboards`,
-      data: [dashboard]
+      data: [
+        {
+          ...rest,
+          config: JSON.stringify(config)
+        }
+      ]
     })
     yield put(VizActions.currentDashboardEdited(dashboard))
     resolve()
@@ -536,7 +556,7 @@ export default function* rootVizSaga(): IterableIterator<any> {
     takeEvery(ActionTypes.EDIT_DISPLAY, editDisplay),
     takeEvery(ActionTypes.DELETE_DISPLAY, deleteDisplay),
     takeEvery(ActionTypes.COPY_DISPLAY, copyDisplay),
-    takeLatest(ActionTypes.LOAD_DISPLAY_SLIDES, getDisplaySlides),
+    takeEvery(ActionTypes.LOAD_DISPLAY_SLIDES, getDisplaySlides),
 
     takeLatest(ActionTypes.ADD_DASHBOARD, addDashboard),
     takeEvery(ActionTypes.EDIT_DASHBOARD, editDashboard),

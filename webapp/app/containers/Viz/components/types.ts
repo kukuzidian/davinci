@@ -18,7 +18,7 @@
  * >>
  */
 
-import { DashboardTypes } from './constants'
+import { DashboardTypes } from '../constants'
 
 export interface IPortal {
   projectId?: number
@@ -54,25 +54,29 @@ export interface IDisplayFormed extends IDisplayBase {
   config: {
     displayParams: IDisplayParams
   }
+  roleIds?: number[]
 }
 
 export type Display = IDisplayRaw | IDisplayFormed
 
-export interface IDashboard {
+export interface IDashboardBase {
   id: number
-  name: number
+  name: string
   parentId: number
   index: number
   dashboardPortalId: number
-  config: string
   type: DashboardTypes
 }
 
-export interface IDashboardWithRole extends IDashboard {
+export interface IDashboardRaw extends IDashboardBase {
+  config: string
+}
+
+export interface IDashboardWithRole extends IDashboardRaw {
   roleIds: number[]
 }
 
-export interface IDashboardNode extends IDashboard {
+export interface IDashboardNode extends IDashboardRaw {
   children?: IDashboardNode[]
 }
 
@@ -105,3 +109,5 @@ export interface ISlideFormed extends ISlideBase {
     slideParams: ISlideParams
   }
 }
+
+export type DisplayFormType = 'add' | 'edit' | 'copy'
